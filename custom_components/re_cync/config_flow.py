@@ -58,7 +58,8 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         if user_input is not None:
-            return self.async_abort(reason="Dammit")
+            # TODO decide what to store.
+            return self.async_create_entry(title="Cync Ready", data=user_input)
 
         return self.async_show_form(
             step_id="two_factor", data_schema=STEP_TWO_FACTOR_SCHEMA
