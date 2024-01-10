@@ -1,0 +1,6 @@
+{
+    "domain": "re_cync",
+    "name": "Cync Reworked",
+    "version": "0.1.0",
+    "config_flow": true
+}
