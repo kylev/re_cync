@@ -50,7 +50,10 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._username = user_input[CONF_USERNAME]
             try:
-                await self._rcs.authenticate(self._username, user_input[CONF_PASSWORD])
+                res = await self._rcs.authenticate(
+                    self._username, user_input[CONF_PASSWORD]
+                )
+                return self.async_create_entry(title=self._username, data=res)
             except TwoFactorRequiredError:
                 await self._rcs.request_token(user_input[CONF_USERNAME])
                 return await self.async_step_two_factor()
@@ -66,10 +69,13 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_two_factor(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors = None
         if user_input is not None:
-            self._rcs.authenticate(self._username, None, user_input[CONF_TOKEN])
-            return self.async_create_entry(title="Cync Ready", data=user_input)
+            res = await self._rcs.authenticate(
+                self._username, None, user_input[CONF_TOKEN]
+            )
+            return self.async_create_entry(title=self._username, data=res)
 
         return self.async_show_form(
-            step_id="two_factor", data_schema=STEP_TWO_FACTOR_SCHEMA
+            step_id="two_factor", data_schema=STEP_TWO_FACTOR_SCHEMA, errors=errors
         )
