@@ -18,9 +18,10 @@ class CyncHub:
         entry: ConfigEntry,
     ) -> None:
         """Create the SIAHub."""
+        _LOGGER.debug("Hub init")
         self._hass: HomeAssistant = hass
         self._entry: ConfigEntry = entry
 
-    async def cloud_start(self) -> None:
+    async def cloud_start(self):
         """Check cloud."""
         _LOGGER.info("Cloud start.")
