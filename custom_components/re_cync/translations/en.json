@@ -7,9 +7,7 @@
                     "username": "Username",
                     "password": "Password"
                 },
-                "data_description": {
-                    "username": "Usuall an email address."
-                }
+                "data_description": {}
             },
             "two_factor": {
                 "description": "Enter the two-factor code from email.",

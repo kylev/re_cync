@@ -9,7 +9,9 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_TOKEN, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.selector import TextSelectorConfig, TextSelectorType
 
+from .auth import AuthError, ReCyncSession, TwoFactorRequiredError, UsernameError
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,9 +37,8 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Init."""
         _LOGGER.debug("Init")
-
-        self.data = {}
-        self.options = {}
+        self._rcs = ReCyncSession()
+        self._username = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -45,20 +46,28 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """User login."""
         _LOGGER.debug("Login step %s", user_input)
 
+        errors = None
         if user_input is not None:
-            # TODO Check username/password
-            return await self.async_step_two_factor()
+            self._username = user_input[CONF_USERNAME]
+            try:
+                await self._rcs.authenticate(self._username, user_input[CONF_PASSWORD])
+            except TwoFactorRequiredError:
+                await self._rcs.request_token(user_input[CONF_USERNAME])
+                return await self.async_step_two_factor()
+            except UsernameError:
+                errors = {CONF_USERNAME: "User not found"}
+            except AuthError as e:
+                errors = {"base": e.args[0]}
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=STEP_USER_DATA_SCHEMA,
+            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
 
     async def async_step_two_factor(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         if user_input is not None:
-            # TODO decide what to store.
+            self._rcs.authenticate(self._username, None, user_input[CONF_TOKEN])
             return self.async_create_entry(title="Cync Ready", data=user_input)
 
         return self.async_show_form(
