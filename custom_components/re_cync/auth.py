@@ -23,6 +23,16 @@ class TwoFactorRequiredError(AuthError):
     pass
 
 
+async def cync_check_user(username) -> bool:
+    """TODO The real login sequence API isn't as implemented.
+
+    Looking at the other implementation and sniffing the website, it looks like
+    GE actually just uses 404 for "no such account". The actual authentication
+    step is password and 2FA in one shot to get the token.
+    """
+    raise NotImplementedError
+
+
 async def cync_authenticate(username, password):
     req = {
         "corp_id": API_CORP_ID,
@@ -30,9 +40,7 @@ async def cync_authenticate(username, password):
         "password": password,
     }
 
-    async with aiohttp.ClientSession() as session, session.post(
-        API_LOGIN, json=req
-    ) as resp:
+    async with aiohttp.ClientSession() as s, s.post(API_LOGIN, json=req) as resp:
         _LOGGER.debug("Auth response %s", resp)
         if resp.status == 200:
             return await resp.json()
