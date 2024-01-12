@@ -106,11 +106,16 @@ class ReCyncSession:
             if resp.status != 200:
                 raise AuthError("Unexpected status", resp)
 
-    def to_entry(self):
-        {}
+    @property
+    def user_id(self):
+        return self._credentials["user_id"]
 
     @property
-    def auth_token(self):
+    def access_token(self):
+        return self._credentials["access_token"]
+
+    @property
+    def binary_token(self):
         "Binary version of the login code."
         login_code = (
             bytearray.fromhex("13000000")
