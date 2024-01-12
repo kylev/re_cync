@@ -16,7 +16,7 @@ PLATFORMS: list[Platform] = [Platform.SWITCH]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up re_cync from a config entry."""
-    _LOGGER.warning("Blergh %s", entry.data)
+    _LOGGER.debug("Setup entry %s", entry.data)
 
     hass.data.setdefault(DOMAIN, {})
     hub = CyncHub(hass, entry)
@@ -25,5 +25,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data["hub"] = hub
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    _LOGGER.debug("Unload entry %s", entry.data)
 
     return True

@@ -1,8 +1,9 @@
 """ReSync authentication."""
 from __future__ import annotations
 
-import aiohttp
 import logging
+
+import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 API_CORP_ID = "1007d2ad150c4000"
@@ -76,23 +77,11 @@ async def cync_verify_token(username, password, token):
         raise AuthError("Unexpected response", resp)
 
 
-async def cync_request_token(username: str):
-    request_code_data = {
-        "corp_id": API_CORP_ID,
-        "email": username,
-        "local_lang": "en-us",
-    }
-    async with aiohttp.ClientSession() as session, session.post(
-        API_REQUEST_TOKEN, json=request_code_data
-    ) as resp:
-        _LOGGER.debug("Token request response %s", resp)
-        if resp.status != 200:
-            raise AuthError("Unexpected status", resp)
-
-
 class ReCyncSession:
-    def __init__(self) -> None:
-        self._credentials = {}
+    """Cync authentication session wrapper."""
+
+    def __init__(self, credentials=None) -> None:
+        self._credentials = credentials or {}
         self._username = None
 
     async def authenticate(self, username, password, token=None):
@@ -101,13 +90,27 @@ class ReCyncSession:
             self._credentials = await cync_authenticate(username, password)
         else:
             self._credentials = await cync_verify_token(username, password, token)
+        return self._credentials
 
-    async def request_token(self, username):
+    async def request_code(self, username):
         """Request a token via email."""
-        await cync_request_token(username)
+        request_code_data = {
+            "corp_id": API_CORP_ID,
+            "email": username,
+            "local_lang": "en-us",
+        }
+        async with aiohttp.ClientSession() as s, s.post(
+            API_REQUEST_TOKEN, json=request_code_data
+        ) as resp:
+            _LOGGER.debug("Token request response %s", resp)
+            if resp.status != 200:
+                raise AuthError("Unexpected status", resp)
+
+    def to_entry(self):
+        {}
 
     @property
-    def auth_bin(self):
+    def auth_token(self):
         "Binary version of the login code."
         login_code = (
             bytearray.fromhex("13000000")

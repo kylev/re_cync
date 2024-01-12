@@ -49,13 +49,14 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = None
         if user_input is not None:
             self._username = user_input[CONF_USERNAME]
+            self._password = user_input[CONF_PASSWORD]  # I hate this
             try:
                 res = await self._rcs.authenticate(
                     self._username, user_input[CONF_PASSWORD]
                 )
                 return self.async_create_entry(title=self._username, data=res)
             except TwoFactorRequiredError:
-                await self._rcs.request_token(user_input[CONF_USERNAME])
+                await self._rcs.request_code(user_input[CONF_USERNAME])
                 return await self.async_step_two_factor()
             except UsernameError:
                 errors = {CONF_USERNAME: "User not found"}
@@ -72,8 +73,9 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = None
         if user_input is not None:
             res = await self._rcs.authenticate(
-                self._username, None, user_input[CONF_TOKEN]
+                self._username, self._password, user_input[CONF_TOKEN]
             )
+            _LOGGER.debug("Step %s", res)
             return self.async_create_entry(title=self._username, data=res)
 
         return self.async_show_form(
