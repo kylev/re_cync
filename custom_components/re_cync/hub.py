@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .auth import ReCyncSession
+from .event import EventStream
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class CyncHub:
         self._hass: HomeAssistant = hass
         self._entry: ConfigEntry = entry
         self._rcs = ReCyncSession(entry.data)
+        self._event_stream = EventStream(self._rcs.binary_token)
 
     async def start_cloud(self):
         """Check cloud."""
@@ -41,13 +43,14 @@ class CyncHub:
         for device in devs:
             await self.start_device(device)
 
+        await self._event_stream.initialize()
+        _LOGGER.info("Cloud started")
+
     async def start_device(self, device):
         url = API_DEVICE_PROPS.format(
             product_id=device["product_id"], device_id=device["id"]
         )
         await self._get_url(url)
-
-        _LOGGER.info("Starting ")
 
     async def _get_url(self, url):
         headers = {"Access-Token": self._rcs.access_token}

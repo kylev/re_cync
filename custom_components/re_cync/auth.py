@@ -115,7 +115,7 @@ class ReCyncSession:
         return self._credentials["access_token"]
 
     @property
-    def binary_token(self):
+    def binary_token(self) -> bytearray:
         "Binary version of the login code."
         login_code = (
             bytearray.fromhex("13000000")
@@ -126,4 +126,4 @@ class ReCyncSession:
             + bytearray(self._credentials["authorize"], "ascii")
             + bytearray.fromhex("0000b4")
         )
-        return [int.from_bytes([byt], "big") for byt in login_code]
+        return bytearray([int.from_bytes([byt], "big") for byt in login_code])
