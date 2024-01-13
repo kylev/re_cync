@@ -137,7 +137,7 @@ class EventStream:
                 await self.__process()
             except Exception as e:
                 _LOGGER.info("Oopsie!", exc_info=e)
-                asyncio.sleep(2)
+                await asyncio.sleep(2)
 
             self.emit(EventType.DISCONNECTED)
 
@@ -158,17 +158,31 @@ class EventStream:
     async def __process(self):
         while True:
             header = await self._reader.read(5)
-            if len(header) == 0 and self._reader.at_eof():
+            if self._reader.at_eof():
+                _LOGGER.debug("At eof having read %s", header)
                 self.emit(EventType.DISCONNECTED)
                 break
             packet_type = int(header[0])
             packet_length = struct.unpack(">I", header[1:5])[0]
+            packet = await self._reader.read(packet_length)
             _LOGGER.debug(
-                "Inspecting packet type %d length %d", packet_type, packet_length
+                "Inspecting packet type 0x%02x (%d) length %d <%s>",
+                packet_type,
+                packet_type,
+                packet_length,
+                packet,
             )
 
-            packet = await self._reader.read(5)
-            if len(packet) != packet_length:
-                _LOGGER.warning("Dropping incomplete read %s", packet)
-                continue
-            _LOGGER.info("No parsing yet!")
+            match packet_type:
+                case 0x18:  # PING?
+                    _LOGGER.debug("PING?")
+                case 0x43:  # 67
+                    self.__handle_status_update(packet)
+                case 0xE0:  # Usually 1-byte 0x03, before we get an eof
+                    _LOGGER.debug("EOF?")
+                case _:
+                    _LOGGER.warning("Dropping packet")
+
+    def __handle_status_update(self, packet):
+        switch_id = str(struct.unpack(">I", packet[0:4])[0])
+        _LOGGER.debug("Status from switch %s", switch_id)
