@@ -165,23 +165,30 @@ class EventStream:
             packet_type = int(header[0])
             packet_length = struct.unpack(">I", header[1:5])[0]
             packet = await self._reader.read(packet_length)
-            _LOGGER.debug(
-                "Inspecting packet type 0x%02x (%d) length %d <%s>",
-                packet_type,
-                packet_type,
-                packet_length,
-                packet,
-            )
 
             match packet_type:
-                case 0x18:  # PING?
+                case 0x18:  # 24
                     _LOGGER.debug("PING?")
                 case 0x43:  # 67
                     self.__handle_status_update(packet)
-                case 0xE0:  # Usually 1-byte 0x03, before we get an eof
+                case 0x73:  # 115
+                    pass
+                case 0x83:  # 131 State packet
+                    pass
+                case 0xAB:  # 171
+                    pass
+                case 0x7B:  # 123
+                    pass
+                case 0xE0:  # 224 Usually 1-byte 0x03, before we get an eof
                     _LOGGER.debug("EOF?")
                 case _:
-                    _LOGGER.warning("Dropping packet")
+                    _LOGGER.debug(
+                        "Dropping packet 0x%02x (%d) length %d <%s>",
+                        packet_type,
+                        packet_type,
+                        packet_length,
+                        packet,
+                    )
 
     def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
