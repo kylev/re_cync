@@ -19,6 +19,10 @@ API_DEVICE_PROPS = (
 )
 
 
+class ApiError(Exception):
+    pass
+
+
 class CyncHub:
     """Cync's cloud "hub" that works over IP."""
 
@@ -32,6 +36,7 @@ class CyncHub:
         self._hass: HomeAssistant = hass
         self._entry: ConfigEntry = entry
         self._rcs = ReCyncSession(entry.data)
+        self._bulbs = []
         self._event_stream = EventStream(self._rcs.binary_token)
 
     async def start_cloud(self):
@@ -39,18 +44,31 @@ class CyncHub:
         _LOGGER.info("Cloud start %s", self._rcs.user_id)
 
         url = API_DEVICE_LIST.format(user_id=self._rcs.user_id)
-        devs = await self._get_url(url)
-        for device in devs:
-            await self.start_device(device)
+        devices = await self._get_url(url)
+        for d in devices:
+            sku_type = int(d["product_id"], 16) % 1000
+            match sku_type:
+                case 713, 721:
+                    _LOGGER.debug("Ignoring switch/dimmer (?) SKU type %d", sku_type)
+                case 897:
+                    await self._discover_home(d)
+                case _:
+                    _LOGGER.debug("Ignoring SKU type %d (%s)", sku_type, d.get("name"))
 
         await self._event_stream.initialize()
         _LOGGER.info("Cloud started")
 
-    async def start_device(self, device):
+    @property
+    def bulbs(self):
+        return self._bulbs
+
+    async def _discover_home(self, device):
         url = API_DEVICE_PROPS.format(
             product_id=device["product_id"], device_id=device["id"]
         )
-        await self._get_url(url)
+        info = await self._get_url(url)
+        for bulb in info["bulbsArray"]:
+            self._bulbs.append(bulb)
 
     async def _get_url(self, url):
         headers = {"Access-Token": self._rcs.access_token}
@@ -58,5 +76,5 @@ class CyncHub:
             data = await resp.json()
             _LOGGER.debug(data)
             if resp.status not in (200, 404):
-                raise Exception("Failed to fetch {}".format(url), resp.status, data)
+                raise ApiError("Failed to fetch", url, resp.status, data)
             return data
