@@ -1,9 +1,9 @@
-"""ReCync switch."""
+"""ReCync light."""
 from __future__ import annotations
 
 import logging
 
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.light import LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -19,11 +19,8 @@ async def async_setup_entry(
     _LOGGER.debug("Setup switch %s", config_entry)
 
 
-class CyncSwitch(SwitchEntity):
-    """Basic switch."""
-
-    def turn_on(self, **kwargs) -> None:
-        """Turn the entity on."""
+class ReCyncLight(LightEntity):
+    """Basic light."""
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
