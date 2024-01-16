@@ -21,7 +21,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Setup light."""
+    """Set up light."""
     _LOGGER.debug("Setup light %s", config_entry)
 
     hub = hass.data[config_entry.entry_id]
