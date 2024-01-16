@@ -23,6 +23,10 @@ class ApiError(Exception):
     pass
 
 
+class AuthError(ApiError):
+    pass
+
+
 class CyncHub:
     """Cync's cloud "hub" that works over IP."""
 
@@ -75,6 +79,10 @@ class CyncHub:
         async with aiohttp.ClientSession() as s, s.get(url, headers=headers) as resp:
             data = await resp.json()
             _LOGGER.debug(data)
-            if resp.status not in (200, 404):
-                raise ApiError("Failed to fetch", url, resp.status, data)
-            return data
+            match resp.status:
+                case 200:
+                    return data
+                case 403:
+                    raise AuthError("Forbidden", url, resp.status, data)
+                case _:
+                    raise ApiError("Failed to fetch", url, resp.status, data)
