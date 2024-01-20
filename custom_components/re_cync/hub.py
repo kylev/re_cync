@@ -19,6 +19,10 @@ API_DEVICE_PROPS = (
 )
 
 
+DEVICE_TYPES_SWITCHES = {68}
+DEVICE_TYPES_BULBS = {55, 57, 146}
+
+
 class ApiError(Exception):
     pass
 
@@ -64,7 +68,11 @@ class CyncHub:
 
     @property
     def bulbs(self):
-        return self._bulbs
+        return filter(lambda b: b["deviceType"] in DEVICE_TYPES_BULBS, self._bulbs)
+
+    @property
+    def switches(self):
+        return filter(lambda b: b["deviceType"] in DEVICE_TYPES_SWITCHES, self._bulbs)
 
     async def _discover_home(self, device):
         url = API_DEVICE_PROPS.format(
