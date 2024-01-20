@@ -81,3 +81,9 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="two_factor", data_schema=STEP_TWO_FACTOR_SCHEMA, errors=errors
         )
+
+    async def async_step_reauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        # This is wrong.
+        return self.async_show_form(step_id="user", data_schema=STEP_USER_DATA_SCHEMA)
