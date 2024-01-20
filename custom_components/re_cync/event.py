@@ -14,6 +14,11 @@ from collections.abc import Callable
 _LOGGER = logging.getLogger(__name__)
 
 
+def packet2hex(byte_array) -> str:
+    """Convert a byte array to a readable hex format."""
+    return " ".join([f"{b:02x}" for b in byte_array])
+
+
 class ResourceTypes(Enum):
     UNKNOWN = "unknown"
 
@@ -159,7 +164,7 @@ class EventStream:
         while True:
             header = await self._reader.read(5)
             if self._reader.at_eof():
-                _LOGGER.debug("At eof having read %s", header)
+                _LOGGER.info("Connection closed")
                 self.emit(EventType.DISCONNECTED)
                 break
             packet_type = int(header[0])
@@ -168,28 +173,39 @@ class EventStream:
 
             match packet_type:
                 case 0x18:  # 24
-                    _LOGGER.debug("PING?")
+                    self.__handle_ping(packet)
                 case 0x43:  # 67
                     self.__handle_status_update(packet)
-                case 0x73:  # 115
-                    pass
-                case 0x83:  # 131 State packet
-                    pass
-                case 0xAB:  # 171
-                    pass
-                case 0x7B:  # 123
-                    pass
+                # case 0x73:  # 115
+                #     pass
+                # case 0x83:  # 131 State packet
+                #     pass
+                # case 0xAB:  # 171
+                #     pass
+                # case 0x7B:  # 123
+                #     pass
                 case 0xE0:  # 224 Usually 1-byte 0x03, before we get an eof
-                    _LOGGER.debug("EOF?")
+                    self.__handle_error(packet)
                 case _:
                     _LOGGER.debug(
                         "Dropping packet 0x%02x (%d) length %d <%s>",
                         packet_type,
                         packet_type,
                         packet_length,
-                        packet,
+                        packet2hex(packet),
                     )
+
+    def __handle_ping(self, packet):
+        _LOGGER.debug("PING? %s", packet)
+
+    def __handle_error(self, packet):
+        _LOGGER.error("Receved error %d length %d", int(packet[0]), len(packet))
 
     def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        _LOGGER.debug("Status from switch %s", switch_id)
+        _LOGGER.debug(
+            "Status from switch %s length %d <%s>",
+            switch_id,
+            len(packet),
+            packet2hex(packet),
+        )

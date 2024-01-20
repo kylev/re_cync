@@ -8,7 +8,11 @@ from typing import Any
 from homeassistant.components.light import LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo, CONNECTION_NETWORK_MAC
+from homeassistant.helpers.device_registry import (
+    DeviceInfo,
+    CONNECTION_NETWORK_MAC,
+    CONNECTION_BLUETOOTH,
+)
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -37,7 +41,10 @@ class ReCyncLight(LightEntity):
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, data["deviceID"])},
-            connections={(CONNECTION_NETWORK_MAC, data["wifiMac"])},
+            connections={
+                (CONNECTION_NETWORK_MAC, data["wifiMac"]),
+                (CONNECTION_BLUETOOTH, data["mac"]),
+            },
             manufacturer="Cync",
             name=data["displayName"],
             sw_version=data["firmwareVersion"],
