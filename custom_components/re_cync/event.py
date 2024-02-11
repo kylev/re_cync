@@ -1,15 +1,15 @@
 """Event-driven cloud connection."""
 
 import asyncio
-import ssl
-
 from asyncio.coroutines import iscoroutinefunction
+from collections.abc import Callable
 from enum import Enum
 import logging
+import ssl
 import struct
 from typing import TYPE_CHECKING, NoReturn, TypedDict
-from collections.abc import Callable
 
+from .const import CLOUD_SERVER_NAME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -150,15 +150,13 @@ class EventStream:
         _LOGGER.info("Connecting to cloud.")
         context = ssl.create_default_context()
         try:
-            return await asyncio.open_connection(
-                "cm.gelighting.com", 23779, ssl=context
-            )
+            return await asyncio.open_connection(CLOUD_SERVER_NAME, 23779, ssl=context)
         except ssl.CertificateError:
             _LOGGER.warning("Connection problem, disabling SSL verification")
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
 
-        return await asyncio.open_connection("cm.gelighting.com", 23779, ssl=context)
+        return await asyncio.open_connection(CLOUD_SERVER_NAME, 23779, ssl=context)
 
     async def __process(self):
         while True:
