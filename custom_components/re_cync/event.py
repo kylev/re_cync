@@ -159,7 +159,6 @@ class EventStream:
         while True:
             header = await self._reader.read(5)
             if self._reader.at_eof():
-                _LOGGER.debug("At eof having read %s", header)
                 self.emit(EventType.DISCONNECTED)
                 break
             packet_type = int(header[0])
@@ -171,16 +170,16 @@ class EventStream:
                     _LOGGER.debug("PING?")
                 case 0x43:  # 67
                     self.__handle_status_update(packet)
-                case 0x73:  # 115
-                    pass
+                # case 0x73:  # 115
+                #     pass
                 case 0x83:  # 131 State packet
-                    pass
-                case 0xAB:  # 171
-                    pass
-                case 0x7B:  # 123
-                    pass
+                    self.__handle_toggle(packet)
+                # case 0xAB:  # 171
+                #     pass
+                # case 0x7B:  # 123
+                #     pass
                 case 0xE0:  # 224 Usually 1-byte 0x03, before we get an eof
-                    _LOGGER.debug("EOF?")
+                    self.__handle_error(packet)
                 case _:
                     _LOGGER.debug(
                         "Dropping packet 0x%02x (%d) length %d <%s>",
@@ -190,6 +189,16 @@ class EventStream:
                         packet,
                     )
 
+    def __handle_error(self, packet):
+        assert len(packet) == 1
+
+        err_code = int(packet[0])
+        _LOGGER.warning("Handled error %02x %d", err_code, err_code)
+
     def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        _LOGGER.debug("Status from switch %s", switch_id)
+        _LOGGER.debug("Status from switch %s %d", switch_id, len(packet) % 19)
+
+    def __handle_toggle(self, packet):
+        switch_id = str(struct.unpack(">I", packet[0:4])[0])
+        _LOGGER.debug("Toggle from switch %s %d", switch_id, len(packet) % 19)
