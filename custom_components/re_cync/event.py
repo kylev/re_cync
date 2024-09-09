@@ -10,6 +10,7 @@ import struct
 from typing import TYPE_CHECKING, NoReturn, TypedDict
 from collections.abc import Callable
 
+from homeassistant.util.ssl import get_default_context, get_default_no_verify_context
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,14 +88,14 @@ class EventStream:
     async def initialize(self) -> None:
         """Start listening for events.
 
-        Starts the connection to the Hue Eventstream and collect events.
+        Starts the connection to the Cync cloud and collect events.
         Connection will be auto-reconnected if it gets lost.
         """
         assert len(self._bg_tasks) == 0
         self._bg_tasks.append(asyncio.create_task(self.__event_reader()))
+        self._bg_tasks.append(asyncio.create_task(self.__keepalive()))
 
     #        self._bg_tasks.append(asyncio.create_task(self.__event_processor()))
-    #        self._bg_tasks.append(asyncio.create_task(self.__keepalive_workaround()))
 
     async def stop(self) -> None:
         """Stop listening for events."""
@@ -116,6 +117,14 @@ class EventStream:
                 asyncio.create_task(callback(etype, data))  # noqa: RUF006
             else:
                 callback(etype, data)
+
+    async def __keepalive(self) -> NoReturn:
+        while True:
+            await asyncio.sleep(10)
+            if self.connected:
+                _LOGGER.debug("Keep-alive")
+                self._writer.write(b"\xd3\x00\x00\x00\x00")
+                await self._writer.drain()
 
     async def __event_reader(self) -> NoReturn:
         self._status = EventStreamStatus.CONNECTING
@@ -143,17 +152,17 @@ class EventStream:
 
     async def __connect(self):
         _LOGGER.info("Connecting to cloud.")
-        context = ssl.create_default_context()
+        context = get_default_context()
         try:
             return await asyncio.open_connection(
-                "cm.gelighting.com", 23779, ssl=context
+                "cm.gelighting.com", 23779, ssl=get_default_context()
             )
         except ssl.CertificateError:
             _LOGGER.warning("Connection problem, disabling SSL verification")
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
 
-        return await asyncio.open_connection("cm.gelighting.com", 23779, ssl=context)
+        return await asyncio.open_connection(
+            "cm.gelighting.com", 23779, ssl=get_default_no_verify_context()
+        )
 
     async def __process(self):
         while True:
@@ -164,30 +173,43 @@ class EventStream:
             packet_type = int(header[0])
             packet_length = struct.unpack(">I", header[1:5])[0]
             packet = await self._reader.read(packet_length)
+            assert len(packet) == packet_length
 
+            # _LOGGER.debug("Packet type %d length %d", packet_type, packet_length)
             match packet_type:
                 case 0x18:  # 24
-                    _LOGGER.debug("PING?")
+                    _LOGGER.debug("PING? %s", packet)
                 case 0x43:  # 67
                     self.__handle_status_update(packet)
                 # case 0x73:  # 115
                 #     pass
-                case 0x83:  # 131 State packet
-                    self.__handle_toggle(packet)
-                # case 0xAB:  # 171
-                #     pass
-                # case 0x7B:  # 123
-                #     pass
+                case 0x7B:  # 123
+                    self.__handle_ack(packet)
+                case 0x83:  # 131 Command packet
+                    self.__handle_command(packet)
+                case 0xAB:  # 171
+                    self.__handle_bulk_status(packet)
                 case 0xE0:  # 224 Usually 1-byte 0x03, before we get an eof
                     self.__handle_error(packet)
+                case 0xD8:  # 216 Keepalive response
+                    _LOGGER.debug("Keep-ack %d", len(packet))
                 case _:
                     _LOGGER.debug(
                         "Dropping packet 0x%02x (%d) length %d <%s>",
                         packet_type,
                         packet_type,
                         packet_length,
-                        packet,
+                        packet.hex(),
                     )
+
+    def __handle_ack(self, packet):
+        # assert len(packet) == 4
+        switch_id = str(struct.unpack(">I", packet[0:4])[0])
+        ack_code = str(struct.unpack(">H", packet[4:6])[0])
+        _LOGGER.debug("Handled ack %s %s", switch_id, ack_code)
+
+    def __handle_bulk_status(self, packet):
+        _LOGGER.debug("Bulk status %d", len(packet) % 19)
 
     def __handle_error(self, packet):
         assert len(packet) == 1
@@ -197,8 +219,8 @@ class EventStream:
 
     def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        _LOGGER.debug("Status from switch %s %d", switch_id, len(packet) % 19)
+        _LOGGER.debug("Status from switch %s %s", switch_id, packet[4:].hex())
 
-    def __handle_toggle(self, packet):
+    def __handle_command(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        _LOGGER.debug("Toggle from switch %s %d", switch_id, len(packet) % 19)
+        _LOGGER.debug("Command about switch %s %s", switch_id, packet[4:].hex())
