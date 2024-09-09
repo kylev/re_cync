@@ -55,7 +55,7 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 res = await self._rcs.authenticate(
                     self._username, user_input[CONF_PASSWORD]
                 )
-                return self.async_create_entry(title=self._username, data=res)
+                return self._save_token(res)
             except TwoFactorRequiredError:
                 await self._rcs.request_code(user_input[CONF_USERNAME])
                 return await self.async_step_two_factor()
@@ -76,8 +76,7 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             res = await self._rcs.authenticate(
                 self._username, self._password, user_input[CONF_TOKEN]
             )
-            _LOGGER.debug("Step %s", res)
-            return self.async_create_entry(title=self._username, data=res)
+            self._save_token(res)
 
         return self.async_show_form(
             step_id="two_factor", data_schema=STEP_TWO_FACTOR_SCHEMA, errors=errors
@@ -88,6 +87,7 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle re-auth."""
         _LOGGER.debug("Re-auth %s", user_input)
+
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -100,3 +100,9 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=vol.Schema({}),
             )
         return await self.async_step_user(None)
+
+    async def _save_token(self, res: dict[str, Any]) -> None:
+        """Save token."""
+        return self.async_create_entry(
+            title=self._username, data={CONF_USERNAME: self._username, CONF_TOKEN: res}
+        )
