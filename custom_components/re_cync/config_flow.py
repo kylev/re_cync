@@ -1,4 +1,5 @@
 """Config flow for ReCync integration."""
+
 from __future__ import annotations
 
 import logging
@@ -81,3 +82,21 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="two_factor", data_schema=STEP_TWO_FACTOR_SCHEMA, errors=errors
         )
+
+    async def async_step_reauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle re-auth."""
+        _LOGGER.debug("Re-auth %s", user_input)
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:  # ConfigFlowResult:
+        """Handle reauthorization flow."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                data_schema=vol.Schema({}),
+            )
+        return await self.async_step_user(None)

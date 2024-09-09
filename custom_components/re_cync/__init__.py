@@ -1,4 +1,5 @@
 """Re-worked Cync Lights for Home Assistant."""
+
 from __future__ import annotations
 
 import logging
@@ -26,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await hub.start_cloud()
     except AuthError as err:
         _LOGGER.error("Error setting up Cync", exc_info=err)
-        raise ConfigEntryAuthFailed(err) from err
+        raise ConfigEntryAuthFailed("Authentication failed or expired") from err
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
