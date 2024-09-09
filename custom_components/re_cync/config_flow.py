@@ -55,7 +55,7 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 res = await self._rcs.authenticate(
                     self._username, user_input[CONF_PASSWORD]
                 )
-                return self._save_token(res)
+                return await self._save_token(res)
             except TwoFactorRequiredError:
                 await self._rcs.request_code(user_input[CONF_USERNAME])
                 return await self.async_step_two_factor()
@@ -76,7 +76,7 @@ class ReCyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             res = await self._rcs.authenticate(
                 self._username, self._password, user_input[CONF_TOKEN]
             )
-            self._save_token(res)
+            return await self._save_token(res)
 
         return self.async_show_form(
             step_id="two_factor", data_schema=STEP_TWO_FACTOR_SCHEMA, errors=errors

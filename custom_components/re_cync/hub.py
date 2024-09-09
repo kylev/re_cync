@@ -1,10 +1,12 @@
 """ReCync Hub."""
+
 from __future__ import annotations
 
 import logging
 
 import aiohttp
 
+from homeassistant.const import CONF_TOKEN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -39,7 +41,7 @@ class CyncHub:
         _LOGGER.debug("Hub init")
         self._hass: HomeAssistant = hass
         self._entry: ConfigEntry = entry
-        self._rcs = ReCyncSession(entry.data)
+        self._rcs = ReCyncSession(entry.data[CONF_TOKEN])
         self._bulbs = []
         self._event_stream = EventStream(self._rcs.binary_token)
 
