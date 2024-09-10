@@ -1,14 +1,14 @@
 """ReCync light."""
+
 from __future__ import annotations
 
 import logging
-
 from typing import Any
 
-from homeassistant.components.light import LightEntity
+from homeassistant.components.light import ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo, CONNECTION_NETWORK_MAC
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -30,6 +30,8 @@ async def async_setup_entry(
 
 class ReCyncLight(LightEntity):
     """Basic light."""
+
+    _attr_supported_color_modes = {ColorMode.ONOFF}
 
     def __init__(self, data) -> None:
         """Init."""
