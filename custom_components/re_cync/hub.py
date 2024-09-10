@@ -6,8 +6,8 @@ import logging
 
 import aiohttp
 
-from homeassistant.const import CONF_TOKEN
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_TOKEN
 from homeassistant.core import HomeAssistant
 
 from .auth import ReCyncSession

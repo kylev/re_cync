@@ -1,14 +1,13 @@
 """Event-driven cloud connection."""
 
 import asyncio
-import ssl
-
 from asyncio.coroutines import iscoroutinefunction
+from collections.abc import Callable
 from enum import Enum
 import logging
+import ssl
 import struct
-from typing import TYPE_CHECKING, NoReturn, TypedDict
-from collections.abc import Callable
+from typing import NoReturn, TypedDict
 
 from homeassistant.util.ssl import get_default_context, get_default_no_verify_context
 

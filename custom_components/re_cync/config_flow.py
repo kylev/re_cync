@@ -10,7 +10,6 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_TOKEN, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.selector import TextSelectorConfig, TextSelectorType
 
 from .auth import AuthError, ReCyncSession, TwoFactorRequiredError, UsernameError
 from .const import DOMAIN
