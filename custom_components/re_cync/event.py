@@ -218,15 +218,21 @@ class EventStream:
 
     def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        toggle, brightness = struct.unpack(">BB", packet[11:13])
+        toggle, brightness, _, red, green, blue = struct.unpack(
+            ">BBBBBB", packet[11:17]
+        )
         _LOGGER.debug(
-            "Status from switch switch %s on:%x bri:%x %s",
+            "Status from switch switch %s on:%x bri:%x rgb:%02x%02x%02x %s",
             switch_id,
             toggle,
             brightness,
+            red,
+            green,
+            blue,
             packet.hex(),
         )
 
     def __handle_command(self, packet):
-        switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        _LOGGER.debug("Command about switch %s %s", switch_id, packet.hex())
+        _switch_id = str(struct.unpack(">I", packet[0:4])[0])
+        #
+        #  _LOGGER.debug("Command about switch %s %s", switch_id, packet.hex())
