@@ -151,8 +151,8 @@ class EventStream:
             self.emit(EventType.DISCONNECTED)
 
     async def __connect(self):
-        _LOGGER.info("Connecting to cloud.")
-        context = get_default_context()
+        _LOGGER.info("Connecting to cloud")
+
         try:
             return await asyncio.open_connection(
                 "cm.gelighting.com", 23779, ssl=get_default_context()
