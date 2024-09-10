@@ -1,4 +1,5 @@
 """Re-worked Cync Lights for Home Assistant."""
+
 from __future__ import annotations
 
 import logging
@@ -8,7 +9,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .hub import AuthError, CyncHub
+from .coordinator import AuthError, ReCyncCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SWITCH]
@@ -19,14 +20,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Setup entry %s", entry.data)
     hass.data.setdefault(DOMAIN, {})
 
-    hub = CyncHub(hass, entry)
+    hub = ReCyncCoordinator(hass, entry)
     hass.data[entry.entry_id] = hub
 
     try:
         await hub.start_cloud()
     except AuthError as err:
-        _LOGGER.error("Error setting up Cync", exc_info=err)
-        raise ConfigEntryAuthFailed(err) from err
+        raise ConfigEntryAuthFailed("Authentication failed or expired") from err
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

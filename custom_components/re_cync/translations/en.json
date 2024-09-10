@@ -14,6 +14,10 @@
                 "data": {
                     "token": "Token"
                 }
+            },
+            "reauth_confirm": {
+                "description": "Please re-enter your Cync login credentials.",
+                "data": {}
             }
         }
     }
