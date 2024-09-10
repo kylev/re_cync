@@ -9,8 +9,10 @@ import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_TOKEN
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .auth import ReCyncSession
+from .const import DOMAIN
 from .event import EventStream
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ class AuthError(ApiError):
     pass
 
 
-class CyncHub:
+class ReCyncCoordinator(DataUpdateCoordinator):
     """Cync's cloud "hub" that works over IP."""
 
     def __init__(
@@ -39,11 +41,13 @@ class CyncHub:
     ) -> None:
         """Create the SIAHub."""
         _LOGGER.debug("Hub init")
-        self._hass: HomeAssistant = hass
+        super().__init__(hass, _LOGGER, name=DOMAIN)
+
         self._entry: ConfigEntry = entry
         self._rcs = ReCyncSession(entry.data[CONF_TOKEN])
         self._bulbs = []
         self._event_stream = EventStream(self._rcs.binary_token)
+        self._seq: int = 0
 
     async def start_cloud(self):
         """Check cloud."""
@@ -67,6 +71,37 @@ class CyncHub:
     @property
     def bulbs(self):
         return self._bulbs
+
+    async def turn_on(self, switch_id):
+        self._seq += 1
+        mesh_id = bytes.fromhex("0000")  # FIXME not real
+        packet = (
+            mesh_id
+            + bytes.fromhex("d00000010000")
+            + ((430 + int(mesh_id[0]) + int(mesh_id[1])) % 256).to_bytes(1, "big")
+            + bytes.fromhex("7e")
+        )
+        # packet = bytes([0x73, 0x00, 0x00, 0x00, 0x1F])
+        # packet += int(switch_id).to_bytes(4, "big") + int(self._seq).to_bytes(2, "big")
+
+        await self._event_stream.async_command(
+            bytes.fromhex("730000001f"), switch_id, packet
+        )
+
+    async def turn_off(self, switch_id):
+        self._seq += 1
+        mesh_id = bytes.fromhex("0000")  # FIXME not real
+
+        packet = (
+            mesh_id
+            + bytes.fromhex("d00000000000")
+            + ((429 + int(mesh_id[0]) + int(mesh_id[1])) % 256).to_bytes(1, "big")
+            + bytes.fromhex("7e")
+        )
+
+        await self._event_stream.async_command(
+            bytes.fromhex("730000001f"), switch_id, packet
+        )
 
     async def _discover_home(self, device):
         url = API_DEVICE_PROPS.format(

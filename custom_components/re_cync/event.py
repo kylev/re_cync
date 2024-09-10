@@ -73,6 +73,7 @@ class EventStream:
         self._subscribers: list[EventSubscriptionType] = []
         self._reader = None
         self._writer = None
+        self._seq = 0
 
     @property
     def connected(self) -> bool:
@@ -117,13 +118,31 @@ class EventStream:
             else:
                 callback(etype, data)
 
+    async def async_command(self, c, switch_id, packet) -> None:
+        """Send a message to the cloud."""
+        if not self.connected:
+            _LOGGER.warning("Not connected, dropping message")
+            return
+
+        self._seq += 1
+        preamble = (
+            c
+            + int(switch_id).to_bytes(4, "big")
+            + int(self._seq).to_bytes(2, "big")
+            + bytes.fromhex("007e00000000f8d00d000000000000")
+        )
+        await self._async_write(preamble + packet)
+
+    async def _async_write(self, message) -> None:
+        self._writer.write(message)  # TODO Needs locking?
+        await self._writer.drain()
+
     async def __keepalive(self) -> NoReturn:
         while True:
             await asyncio.sleep(10)
             if self.connected:
                 _LOGGER.debug("Keep-alive")
-                self._writer.write(b"\xd3\x00\x00\x00\x00")
-                await self._writer.drain()
+                await self._async_write(b"\xd3\x00\x00\x00\x00")
 
     async def __event_reader(self) -> NoReturn:
         self._status = EventStreamStatus.CONNECTING
@@ -133,8 +152,7 @@ class EventStream:
             connect_attempts += 1
             try:
                 self._reader, self._writer = await self.__connect()
-                self._writer.write(self._login_code)
-                await self._writer.drain()
+                await self._async_write(self._login_code)
 
                 self._status = EventStreamStatus.CONNECTED
                 if connect_attempts == 1:

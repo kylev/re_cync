@@ -9,7 +9,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .hub import AuthError, CyncHub
+from .coordinator import AuthError, ReCyncCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.LIGHT]
@@ -20,7 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Setup entry %s", entry.data)
     hass.data.setdefault(DOMAIN, {})
 
-    hub = CyncHub(hass, entry)
+    hub = ReCyncCoordinator(hass, entry)
     hass.data[entry.entry_id] = hub
 
     try:
