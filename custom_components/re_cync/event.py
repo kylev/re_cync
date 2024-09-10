@@ -218,14 +218,15 @@ class EventStream:
 
     def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        toggle, brightness, _, red, green, blue = struct.unpack(
+        toggle, brightness, white_temp, red, green, blue = struct.unpack(
             ">BBBBBB", packet[11:17]
         )
         _LOGGER.debug(
-            "Status from switch switch %s on:%x bri:%x rgb:%02x%02x%02x %s",
+            "Status from switch switch %s on:%02x bri:%02x temp:%02x rgb:%02x%02x%02x %s",
             switch_id,
             toggle,
             brightness,
+            white_temp,
             red,
             green,
             blue,
