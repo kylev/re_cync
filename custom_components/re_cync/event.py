@@ -203,7 +203,6 @@ class EventStream:
                     )
 
     def __handle_ack(self, packet):
-        # assert len(packet) == 4
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
         ack_code = str(struct.unpack(">H", packet[4:6])[0])
         _LOGGER.debug("Handled ack %s %s", switch_id, ack_code)
@@ -219,8 +218,15 @@ class EventStream:
 
     def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        _LOGGER.debug("Status from switch %s %s", switch_id, packet[4:].hex())
+        toggle, brightness = struct.unpack(">BB", packet[11:13])
+        _LOGGER.debug(
+            "Status from switch switch %s on:%x bri:%x %s",
+            switch_id,
+            toggle,
+            brightness,
+            packet.hex(),
+        )
 
     def __handle_command(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        _LOGGER.debug("Command about switch %s %s", switch_id, packet[4:].hex())
+        _LOGGER.debug("Command about switch %s %s", switch_id, packet.hex())
