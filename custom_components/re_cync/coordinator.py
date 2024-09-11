@@ -45,13 +45,19 @@ class ReCyncCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Create the SIAHub."""
         _LOGGER.debug("Hub init")
-        super().__init__(hass, _LOGGER, name=DOMAIN)
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+        )
 
         self._entry: ConfigEntry = entry
         self._rcs = ReCyncSession(entry.data[CONF_TOKEN])
         self._bulbs = []
         self._event_stream = EventStream(self._rcs.binary_token)
         self._seq: int = 0
+
+        self.devices = {}
 
     async def start_cloud(self):
         """Check cloud."""
@@ -68,9 +74,14 @@ class ReCyncCoordinator(DataUpdateCoordinator):
                     await self._discover_home(d)
                 case _:
                     _LOGGER.debug("Ignoring SKU type %d (%s)", sku_type, d.get("name"))
-
+        self._event_stream.set_update_callback(self.async_handle_status)
         await self._event_stream.initialize()
         _LOGGER.info("Cloud started")
+
+    async def async_handle_status(self, switch_id, data) -> None:
+        _LOGGER.debug("Got status %s %s", switch_id, data)
+        self.devices[switch_id] = data
+        self.async_set_updated_data(self.devices)
 
     @property
     def bulbs(self):

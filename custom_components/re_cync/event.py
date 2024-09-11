@@ -81,6 +81,7 @@ class EventStream:
         self._reader = None
         self._writer = None
         self._seq = 0
+        self._cb = None
 
     @property
     def connected(self) -> bool:
@@ -109,6 +110,10 @@ class EventStream:
         for task in self._bg_tasks:
             task.cancel()
         self._bg_tasks = []
+
+    def set_update_callback(self, cb) -> None:
+        """Set callback for when we receive an event."""
+        self._cb = cb
 
     def emit(self, etype: EventType, data: dict | None = None) -> None:
         """Emit event to all listeners."""
@@ -204,7 +209,7 @@ class EventStream:
                 case 0x18:  # 24
                     _LOGGER.debug("PING? %s", packet)
                 case 0x43:  # 67
-                    self.__handle_status_update(packet)
+                    await self.__handle_status_update(packet)
                 # case 0x73:  # 115
                 #     pass
                 case 0x7B:  # 123
@@ -240,15 +245,15 @@ class EventStream:
         err_code = int(packet[0])
         _LOGGER.warning("Handled error %02x %d", err_code, err_code)
 
-    def __handle_status_update(self, packet):
+    async def __handle_status_update(self, packet):
         switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        toggle, brightness, white_temp, red, green, blue = struct.unpack(
-            ">BBBBBB", packet[11:17]
+        is_on, brightness, white_temp, red, green, blue = struct.unpack(
+            ">?BBBBB", packet[11:17]
         )
         _LOGGER.debug(
             "Status from switch switch %s on:%02x bri:%02x temp:%02x rgb:%02x%02x%02x %s",
             switch_id,
-            toggle,
+            is_on,
             brightness,
             white_temp,
             red,
@@ -256,6 +261,16 @@ class EventStream:
             blue,
             packet.hex(),
         )
+        if self._cb:
+            await self._cb(
+                switch_id,
+                {
+                    "is_on": is_on,
+                    "brightness": brightness,
+                    "the_temp": white_temp,
+                    "rgb": (red, green, blue),
+                },
+            )
 
     def __handle_command(self, packet):
         _switch_id = str(struct.unpack(">I", packet[0:4])[0])

@@ -49,11 +49,6 @@ class ReCyncLight(ReCyncEntity, LightEntity):
     def supported_color_modes(self) -> set[str] | None:
         return self._supported_color_modes
 
-    @property
-    def is_on(self):
-        """If the switch is currently on or off."""
-        return False
-
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on."""
 

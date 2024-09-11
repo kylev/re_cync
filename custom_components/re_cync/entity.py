@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from homeassistant.core import callback
 from homeassistant.helpers.device_registry import (
     CONNECTION_BLUETOOTH,
     CONNECTION_NETWORK_MAC,
@@ -42,3 +43,20 @@ class ReCyncEntity(CoordinatorEntity[ReCyncCoordinator]):
             name=dev_info["displayName"],
             sw_version=dev_info["firmwareVersion"],
         )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        _LOGGER.debug("Entity update from coordinator")
+        self.async_write_ha_state()
+
+    @property
+    def is_on(self) -> bool:
+        """If the switch is currently on or off."""
+        _LOGGER.debug("is_on %s", self.coordinator.data)
+
+        if self.coordinator.data is None:
+            return False
+        try:
+            return self.coordinator.data[self._attr_unique_id]["is_on"]
+        except KeyError:
+            return False
