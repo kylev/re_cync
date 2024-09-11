@@ -16,26 +16,29 @@ from homeassistant.helpers.device_registry import (
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import ReCyncUpdateCoordinator
+from .coordinator import ReCyncCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ReCyncEntity(CoordinatorEntity[ReCyncUpdateCoordinator]):
-    """BasEntity."""
+class ReCyncEntity(CoordinatorEntity[ReCyncCoordinator]):
+    """Base entity full of value."""
 
-    def __init__(self, coordinator: ReCyncUpdateCoordinator, data: Any) -> None:
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: ReCyncCoordinator, dev_info: Any) -> None:
         """Init."""
         super().__init__(coordinator)
 
+        self._attr_unique_id = str(dev_info["switchID"])
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(data["deviceID"]))},
+            identifiers={(DOMAIN, str(dev_info["deviceID"]))},
             connections={
-                (CONNECTION_BLUETOOTH, data["mac"]),
-                (CONNECTION_NETWORK_MAC, data["wifiMac"]),
+                (CONNECTION_BLUETOOTH, dev_info["mac"]),
+                (CONNECTION_NETWORK_MAC, dev_info["wifiMac"]),
             },
             manufacturer="Cync",
-            model_id=str(data["deviceType"]),
-            name=data["displayName"],
-            sw_version=data["firmwareVersion"],
+            model_id=str(dev_info["deviceType"]),
+            name=dev_info["displayName"],
+            sw_version=dev_info["firmwareVersion"],
         )

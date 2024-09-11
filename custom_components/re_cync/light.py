@@ -8,15 +8,10 @@ from typing import Any
 from homeassistant.components.light import ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import (
-    CONNECTION_BLUETOOTH,
-    CONNECTION_NETWORK_MAC,
-    DeviceInfo,
-)
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import ReCyncCoordinator
+from .entity import ReCyncEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,49 +24,26 @@ async def async_setup_entry(
     """Set up light."""
     _LOGGER.debug("Setup light %s", config_entry)
 
-    hub = hass.data[config_entry.entry_id]
-    async_add_entities([ReCyncLight(hub, b) for b in hub.bulbs])
+    coordinator = hass.data[config_entry.entry_id]
+    async_add_entities([ReCyncLight(coordinator, b) for b in coordinator.bulbs])
 
 
-class ReCyncLight(LightEntity):
+class ReCyncLight(ReCyncEntity, LightEntity):
     """Basic light."""
 
-    _attr_supported_color_modes = {ColorMode.ONOFF}
-
-    def __init__(self, hub, data) -> None:
+    def __init__(self, coordinator: ReCyncCoordinator, data) -> None:
         """Init."""
         _LOGGER.debug("Light init %s", data)
-        self._data = data
-        self._hub: ReCyncCoordinator = hub
+        super().__init__(coordinator, data)
 
+        self._data = data
         self._supported_color_modes: set[str] = {ColorMode.ONOFF}
         self._color_mode: str | None = None
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(data["deviceID"]))},
-            connections={
-                (CONNECTION_BLUETOOTH, data["mac"]),
-                (CONNECTION_NETWORK_MAC, data["wifiMac"]),
-            },
-            manufacturer="Cync",
-            model_id=str(data["deviceType"]),
-            name=data["displayName"],
-            sw_version=data["firmwareVersion"],
-        )
-
-        if data["deviceType"] in {55, 146}:
+        if data["deviceType"] in {55}:
             self._supported_color_modes = {ColorMode.BRIGHTNESS}
         if data["deviceType"] in {146}:
-            self._supported_color_modes.add(ColorMode.RGB)
-            self._supported_color_modes.add(ColorMode.COLOR_TEMP)
-
-    @property
-    def unique_id(self) -> str:
-        return str(self._data["switchID"])
-
-    @property
-    def name(self) -> str:
-        return self._data["displayName"]
+            self._supported_color_modes = {ColorMode.RGB, ColorMode.WHITE}
 
     @property
     def supported_color_modes(self) -> set[str] | None:
@@ -84,8 +56,6 @@ class ReCyncLight(LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on."""
-        await self._hub.turn_on(self._data["switchID"])
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off."""
-        await self._hub.turn_off(self._data["switchID"])
