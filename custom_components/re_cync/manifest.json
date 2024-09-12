@@ -6,10 +6,5 @@
     "after_dependencies": [
         "bluetooth"
     ],
-    "iot_class": "cloud_polling",
-    "bluetooth": [
-        {
-            "service_uuid": "00001828-0000-1000-8000-00805f9b34fb"
-        }
-    ]
+    "iot_class": "cloud_polling"
 }
