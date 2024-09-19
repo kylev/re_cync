@@ -33,5 +33,5 @@ class ReCyncSwitch(ReCyncEntity, SwitchEntity):
 
     def __init__(self, coordinator: ReCyncCoordinator, data) -> None:
         """Init."""
-        _LOGGER.debug("Switch init %s", data)
         super().__init__(coordinator, data)
+        _LOGGER.debug("Switch init %s", data)

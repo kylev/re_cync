@@ -33,8 +33,8 @@ class ReCyncLight(ReCyncEntity, LightEntity):
 
     def __init__(self, coordinator: ReCyncCoordinator, data) -> None:
         """Init."""
-        _LOGGER.debug("Light init %s", data)
         super().__init__(coordinator, data)
+        _LOGGER.debug("Light init %s", data)
 
         self._data = data
         self._supported_color_modes: set[str] = {ColorMode.ONOFF}
