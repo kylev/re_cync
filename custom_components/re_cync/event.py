@@ -251,7 +251,7 @@ class EventStream:
             ">?BBBBB", packet[11:17]
         )
         _LOGGER.debug(
-            "Status from switch switch %s on:%02x bri:%02x temp:%02x rgb:%02x%02x%02x %s",
+            "Status from switch %s on:%02x bri:%02x temp:%02x rgb:%02x%02x%02x %s",
             switch_id,
             is_on,
             brightness,
