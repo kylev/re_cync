@@ -33,7 +33,7 @@ class ReCyncEntity(CoordinatorEntity[ReCyncCoordinator]):
 
         self._attr_unique_id = str(dev_info["switchID"])
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(dev_info["deviceID"]))},
+            identifiers={(DOMAIN, str(dev_info["switchID"]))},
             connections={
                 (CONNECTION_BLUETOOTH, dev_info["mac"]),
                 (CONNECTION_NETWORK_MAC, dev_info["wifiMac"]),
