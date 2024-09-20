@@ -57,7 +57,7 @@ class ReCyncCoordinator(DataUpdateCoordinator):
         self._event_stream = EventStream(self._rcs.binary_token)
         self._seq: int = 0
 
-        self.devices = {}
+        self.data = {}
 
     async def start_cloud(self):
         """Check cloud."""
@@ -78,10 +78,11 @@ class ReCyncCoordinator(DataUpdateCoordinator):
         await self._event_stream.initialize()
         _LOGGER.info("Cloud started")
 
-    async def async_handle_status(self, switch_id, data) -> None:
-        _LOGGER.debug("Got status %s %s", switch_id, data)
-        self.devices[switch_id] = data
-        self.async_set_updated_data(self.devices)
+    async def async_handle_status(self, switch_id, status) -> None:
+        _LOGGER.debug("Got status %s %s", switch_id, status)
+        new_data = self.data.copy()
+        new_data[switch_id] = status
+        self.async_set_updated_data(new_data)
 
     @property
     def bulbs(self):
