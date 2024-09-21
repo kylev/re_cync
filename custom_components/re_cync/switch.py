@@ -35,15 +35,3 @@ class ReCyncSwitch(ReCyncEntity, SwitchEntity):
         """Init."""
         super().__init__(coordinator, data)
         _LOGGER.debug("Switch init %s", data)
-
-    def _handle_coordinator_update(self) -> None:
-        updated = False
-        d = self.coordinator.data.get(self._attr_unique_id)
-        if d is None:
-            return
-        if self._attr_is_on != d["is_on"]:
-            self._attr_is_on = d["is_on"]
-            updated = True
-
-        if updated:
-            self.async_write_ha_state()

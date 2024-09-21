@@ -5,9 +5,11 @@ Base functionality
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import Any
 
+from homeassistant.components.light import ColorMode
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import (
     CONNECTION_BLUETOOTH,
@@ -46,18 +48,19 @@ class ReCyncEntity(CoordinatorEntity[ReCyncCoordinator]):
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        _LOGGER.debug("Base entity update from coordinator; noisy.")
-        self.async_write_ha_state()
+        # _LOGGER.debug("Base entity update from coordinator; noisy.")
+        super()._handle_coordinator_update()
 
     @property
     def is_on(self) -> bool:
         """If the switch is currently on or off."""
         # _LOGGER.debug("is_on %s", self.coordinator.data)
-        return self._fetch_value("is_on")
+        return self._get_value("is_on") or False
 
-    def _fetch_value(self, name: str) -> Any:
+    def _get_value(self, name: str, default: Any = None) -> Any:
         """Fetch a value from the coordinator."""
-        try:
-            return self.coordinator.data.get(self._attr_unique_id, {})[name]
-        except KeyError:
-            return None
+        val = default
+        with contextlib.suppress(KeyError):
+            val = self.coordinator.data.get(self.unique_id, {})[name]
+        _LOGGER.debug("Value %s for %s: %s", name, self.unique_id, val)
+        return val

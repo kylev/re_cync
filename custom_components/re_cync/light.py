@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from typing import Any
 
 from homeassistant.components.light import ColorMode, LightEntity
@@ -11,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.color import color_temperature_kelvin_to_mired
+from homeassistant.util.scaling import scale_ranged_value_to_int_range
 
 from .coordinator import ReCyncCoordinator
 from .entity import ReCyncEntity
@@ -41,39 +41,41 @@ class ReCyncLight(ReCyncEntity, LightEntity):
         super().__init__(coordinator, data)
         _LOGGER.debug("Light init %s", data)
 
-        self._color_mode: str | None = None
-        self._attr_supported_color_modes = {ColorMode.ONOFF}
         if data["deviceType"] in {55}:
             self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
         if data["deviceType"] in {146}:
-            self._attr_supported_color_modes = {ColorMode.RGB, ColorMode.COLOR_TEMP}
+            self._attr_supported_color_modes = {
+                ColorMode.BRIGHTNESS,
+                ColorMode.RGB,
+                ColorMode.COLOR_TEMP,
+            }
 
-    def _handle_coordinator_update(self) -> None:
-        updated = False
-        d = self.coordinator.data.get(self.unique_id)
-        if d is None:
-            return
-        if self._attr_is_on != d["is_on"]:
-            self._attr_is_on = d["is_on"]
-            updated = True
-        if self._attr_rgb_color != d["rgb"] and d["white_temp"] == 0xFE:
-            self._attr_rgb_color = d["rgb"]
-            self._attr_color_mode = ColorMode.RGB
-            updated = True
-        if self._attr_brightness != d["brightness"]:
-            self._attr_brightness = d["brightness"]
-            updated = True
-        new_ct = (
-            self.max_mireds
-            - (self.max_mireds - self.min_mireds) * d["white_temp"] / 100
+    @property
+    def brightness(self) -> int | None:
+        """Return the brightness of the light."""
+        return scale_ranged_value_to_int_range(
+            (0, 100), (0, 255), self._get_value("brightness")
         )
-        if self._attr_color_temp != new_ct and d["brightness"] == 0x64:
-            self._attr_color_temp = new_ct
-            self._attr_color_mode = ColorMode.COLOR_TEMP
-            updated = True
 
-        if updated:
-            self.async_write_ha_state()
+    @property
+    def color_mode(self) -> str | None:
+        """Return the color mode of the light."""
+        if self._get_value("white_temp") == 0xFE:
+            return ColorMode.RGB
+        # if self._get_value("brightness") == 0x64:
+        return ColorMode.COLOR_TEMP
+        # return ColorMode.BRIGHTNESS
+
+    @property
+    def rgb_color(self) -> tuple[int, int, int]:
+        """Return the RGB color value."""
+        return self._get_value("rgb")
+
+    @property
+    def color_temp(self) -> int | None:
+        """Return the CT color value."""
+        wt = self._get_value("white_temp")
+        return self.max_mireds - (self.max_mireds - self.min_mireds) * wt / 100
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on."""

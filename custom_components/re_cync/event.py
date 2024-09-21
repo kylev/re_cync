@@ -251,7 +251,7 @@ class EventStream:
             ">?BBBBB", packet[11:17]
         )
         _LOGGER.debug(
-            "Status from switch %s on:%s bri:%02x temp:%02x rgb:%02x%02x%02x %s",
+            "Status from switch %s on:%s bri:%02x temp:%02x rgb:%02x%02x%02x after:%s",
             switch_id,
             is_on,
             brightness,
@@ -259,7 +259,7 @@ class EventStream:
             red,
             green,
             blue,
-            packet.hex(),
+            packet[17:].hex(),
         )
         if self._cb:
             await self._cb(
@@ -273,6 +273,6 @@ class EventStream:
             )
 
     def __handle_command(self, packet):
-        _switch_id = str(struct.unpack(">I", packet[0:4])[0])
-        #
-        #  _LOGGER.debug("Command about switch %s %s", switch_id, packet.hex())
+        switch_id = str(struct.unpack(">I", packet[0:4])[0])
+
+        _LOGGER.debug("Command about switch %s %s", switch_id, packet.hex())

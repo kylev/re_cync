@@ -23,8 +23,8 @@ API_DEVICE_PROPS = (
 )
 
 
-DEVICE_TYPES_SWITCHES = {68}
-DEVICE_TYPES_BULBS = {55, 57, 146}
+DEVICE_TYPES_SWITCHES = {55, 68}
+DEVICE_TYPES_BULBS = {57, 146}
 
 
 class ApiError(Exception):
@@ -82,6 +82,7 @@ class ReCyncCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Got status %s %s", switch_id, status)
         new_data = self.data.copy()
         new_data[switch_id] = status
+        _LOGGER.debug("New data %s", new_data)
         self.async_set_updated_data(new_data)
 
     @property
@@ -135,7 +136,7 @@ class ReCyncCoordinator(DataUpdateCoordinator):
         headers = {"Access-Token": self._rcs.access_token}
         async with aiohttp.ClientSession() as s, s.get(url, headers=headers) as resp:
             data = await resp.json()
-            _LOGGER.debug(data)
+            _LOGGER.debug("GetUrl %s -> %s", url, data)
             match resp.status:
                 case 200:
                     return data
